@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> MELHORAR IMAGEM </title>
+    <title>Melhorar Imagem</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #efe7e7;
+            background-color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -17,79 +17,123 @@
         }
 
         .container {
+            background-color: #f7f7f7;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
             text-align: center;
-            background-color: #c1f1e4;
-            padding: 20px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #008CBA;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.89);
-            max-width: 400px;
-            /* Tamanho máximo do contêiner */
-            margin: 0 auto;
-            /* Centralizar o contêiner na página */
+            padding: 20px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .drop-zone:hover {
+            background-color: #e0f7ff;
+        }
+
+        .drop-zone.drag-over {
+            background-color: #cbe7ff;
         }
 
         #inputImagem {
-            margin-bottom: 20px;
+            display: none;
         }
 
         #imagemSelecionada,
         #imagemFiltrada {
             width: 100%;
-            /* Ajustar a largura para 100% do contêiner */
-            max-height: 300px;
-            /* Altura máxima da imagem */
+            max-height: 350px;
             object-fit: contain;
-            /* Manter a proporção da imagem */
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
 
-        p {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-
-        #btnSalvar {
-            background-color: #4CAF50;
+        button {
+            background-color: #008CBA;
             color: white;
-            padding: 10px;
             border: none;
             border-radius: 4px;
-            cursor: pointer;
+            padding: 10px 20px;
             font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
-        #btnSalvar:hover {
-            background-color: #45a049;
+        button:hover {
+            background-color: #007B9E;
         }
     </style>
 </head>
 
 <body>
-
     <div class="container">
-        <h1> SELECIONE A IMAGEM </h1>
+        <h1>Melhorar Imagem</h1>
+        <div class="drop-zone" id="drop-zone">
+            Arraste a imagem aqui ou clique para selecionar
+        </div>
         <input type="file" id="inputImagem" accept="image/*">
         <img id="imagemSelecionada" alt="Imagem selecionada">
         <p>Imagem com filtros:</p>
         <img src="" alt="Imagem com filtros" id="imagemFiltrada">
         <button id="btnSalvar">Salvar Imagem</button>
+        <br><br>
+        <label>Tamanho:</label>
+        <select id="scaleSelect">
+            <option value="1">Original</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+        </select>
     </div>
 
     <script>
+        var dropZone = document.getElementById('drop-zone');
         var inputImagem = document.getElementById('inputImagem');
         var imagemSelecionada = document.getElementById('imagemSelecionada');
         var imagemFiltrada = document.getElementById('imagemFiltrada');
         var btnSalvar = document.getElementById('btnSalvar');
+        var scaleSelect = document.getElementById('scaleSelect');
+
+        dropZone.addEventListener('click', function () {
+            inputImagem.click();
+        });
+
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', function () {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) {
+                inputImagem.files = e.dataTransfer.files;
+                var urlImagem = URL.createObjectURL(inputImagem.files[0]);
+                imagemSelecionada.src = urlImagem;
+
+                imagemFiltrada.src = urlImagem;
+                imagemFiltrada.style.filter = 'brightness(145%) contrast(120%) saturate(126%)';
+            }
+        });
 
         inputImagem.addEventListener('change', function () {
             if (inputImagem.files && inputImagem.files[0]) {
                 var urlImagem = URL.createObjectURL(inputImagem.files[0]);
                 imagemSelecionada.src = urlImagem;
 
-                // Aplicar filtros à imagem filtrada
                 imagemFiltrada.src = urlImagem;
                 imagemFiltrada.style.filter = 'brightness(145%) contrast(120%) saturate(126%)';
             }
@@ -100,17 +144,14 @@
                 var canvas = document.createElement('canvas');
                 var ctx = canvas.getContext('2d');
 
-                // Definir as dimensões do canvas iguais às da imagem original
-                canvas.width = imagemFiltrada.naturalWidth;
-                canvas.height = imagemFiltrada.naturalHeight;
+                var scale = parseInt(scaleSelect.value);
+                canvas.width = imagemFiltrada.naturalWidth * scale;
+                canvas.height = imagemFiltrada.naturalHeight * scale;
 
-                // Aplicar filtros ao contexto do canvas
-                ctx.filter = 'brightness(117%) contrast(100%) saturate(105%)';
-                ctx.drawImage(imagemFiltrada, 0, 0);
+                ctx.filter = 'brightness(145%) contrast(120%) saturate(126%)';
+                ctx.drawImage(imagemFiltrada, 0, 0, canvas.width, canvas.height);
 
-                // Converter o canvas para blob
                 canvas.toBlob(function (blob) {
-                    // Criar um link para download e simular um clique
                     var link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
                     link.download = 'imagem_filtrada.png';
@@ -120,5 +161,4 @@
         });
     </script>
 </body>
-
 </html>
