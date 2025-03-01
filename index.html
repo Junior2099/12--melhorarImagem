@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 
 <head>
     <meta charset="UTF-8">
@@ -7,13 +7,14 @@
     <title>Melhorar Imagem</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
         }
 
         .container {
@@ -22,7 +23,7 @@
             border-radius: 12px;
             padding: 30px;
             width: 100%;
-            max-width: 500px;
+            max-width: 800px;
             text-align: center;
         }
 
@@ -47,14 +48,47 @@
             display: none;
         }
 
-        #imagemSelecionada,
-        #imagemFiltrada {
+        .image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .image-wrapper img {
             width: 100%;
-            max-height: 350px;
-            object-fit: contain;
+            height: 100%;
+            object-fit: cover;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .remove-btn:hover {
+            background-color: #ff1a1a;
         }
 
         button {
@@ -71,37 +105,48 @@
         button:hover {
             background-color: #007B9E;
         }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        select, input[type="range"] {
+            margin-right: 20px;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <h1>Melhorar Imagem</h1>
-        <div class="drop-zone" id="drop-zone">
-            Arraste a imagem aqui ou clique para selecionar
+        <div class="drop-zone" id="drop-zone">Arraste as imagens aqui ou clique para selecionar</div>
+        <input type="file" id="inputImagem" accept="image/*" multiple>
+        <div class="image-preview" id="imagePreview"></div>
+        <div class="controls">
+            <label>Tamanho:</label>
+            <select id="scaleSelect">
+                <option value="1">Original</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+            </select>
+      
+            <button id="btnSalvar">Salvar Todas as Imagens</button>
         </div>
-        <input type="file" id="inputImagem" accept="image/*">
-        <img id="imagemSelecionada" alt="Imagem selecionada">
-        <p>Imagem com filtros:</p>
-        <img src="" alt="Imagem com filtros" id="imagemFiltrada">
-        <button id="btnSalvar">Salvar Imagem</button>
-        <br><br>
-        <label>Tamanho:</label>
-        <select id="scaleSelect">
-            <option value="1">Original</option>
-            <option value="2">2x</option>
-            <option value="3">3x</option>
-            <option value="4">4x</option>
-        </select>
     </div>
 
     <script>
         var dropZone = document.getElementById('drop-zone');
         var inputImagem = document.getElementById('inputImagem');
-        var imagemSelecionada = document.getElementById('imagemSelecionada');
-        var imagemFiltrada = document.getElementById('imagemFiltrada');
+        var imagePreview = document.getElementById('imagePreview');
         var btnSalvar = document.getElementById('btnSalvar');
         var scaleSelect = document.getElementById('scaleSelect');
+        var sharpnessRange = document.getElementById('sharpnessRange');
 
         dropZone.addEventListener('click', function () {
             inputImagem.click();
@@ -119,46 +164,83 @@
         dropZone.addEventListener('drop', function (e) {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
-            if (e.dataTransfer.files.length) {
-                inputImagem.files = e.dataTransfer.files;
-                var urlImagem = URL.createObjectURL(inputImagem.files[0]);
-                imagemSelecionada.src = urlImagem;
-
-                imagemFiltrada.src = urlImagem;
-                imagemFiltrada.style.filter = 'brightness(145%) contrast(120%) saturate(126%)';
-            }
+            handleFiles(e.dataTransfer.files);
         });
 
         inputImagem.addEventListener('change', function () {
-            if (inputImagem.files && inputImagem.files[0]) {
-                var urlImagem = URL.createObjectURL(inputImagem.files[0]);
-                imagemSelecionada.src = urlImagem;
-
-                imagemFiltrada.src = urlImagem;
-                imagemFiltrada.style.filter = 'brightness(145%) contrast(120%) saturate(126%)';
+            if (inputImagem.files.length) {
+                handleFiles(inputImagem.files);
             }
         });
 
-        btnSalvar.addEventListener('click', function () {
-            if (imagemFiltrada.src) {
-                var canvas = document.createElement('canvas');
-                var ctx = canvas.getContext('2d');
+        function handleFiles(files) {
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var imageWrapper = document.createElement('div');
+                        imageWrapper.classList.add('image-wrapper');
 
-                var scale = parseInt(scaleSelect.value);
-                canvas.width = imagemFiltrada.naturalWidth * scale;
-                canvas.height = imagemFiltrada.naturalHeight * scale;
+                        var img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.classList.add('preview-image');
 
-                ctx.filter = 'brightness(145%) contrast(120%) saturate(126%)';
-                ctx.drawImage(imagemFiltrada, 0, 0, canvas.width, canvas.height);
+                        var removeBtn = document.createElement('button');
+                        removeBtn.classList.add('remove-btn');
+                        removeBtn.innerHTML = '×';
+                        removeBtn.addEventListener('click', function () {
+                            imageWrapper.remove();
+                        });
 
-                canvas.toBlob(function (blob) {
-                    var link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = 'imagem_filtrada.png';
-                    link.click();
-                }, 'image/png');
+                        imageWrapper.appendChild(img);
+                        imageWrapper.appendChild(removeBtn);
+                        imagePreview.appendChild(imageWrapper);
+                    };
+                    reader.readAsDataURL(file);
+                }
             }
-        });
+        }
+
+        function applySharpness(ctx, imageData, intensity) {
+    if (intensity === 0) {
+        return imageData;
+    }
+
+    let tempCanvas = document.createElement('canvas');
+    let tempCtx = tempCanvas.getContext('2d');
+
+    tempCanvas.width = imageData.width;
+    tempCanvas.height = imageData.height;
+
+    tempCtx.filter = `contrast(${100 + intensity * 30}%)`;
+    tempCtx.drawImage(ctx.canvas, 0, 0, imageData.width, imageData.height);
+
+    return tempCtx.getImageData(0, 0, imageData.width, imageData.height);
+}
+
+btnSalvar.addEventListener('click', function () {
+    var images = document.querySelectorAll('.preview-image');
+    var scale = parseInt(scaleSelect.value);
+
+    images.forEach((img, index) => {
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+
+        canvas.width = img.naturalWidth * scale;
+        canvas.height = img.naturalHeight * scale;
+
+        ctx.filter = 'brightness(120%) contrast(80%) saturate(110%)'; 
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(function (blob) {
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `imagem_filtrada_${index + 1}.png`;
+            link.click();
+        }, 'image/png');
+    });
+});
     </script>
 </body>
+
 </html>
